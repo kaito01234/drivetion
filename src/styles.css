@@ -548,3 +548,16 @@ h2 {
 .name-input input {
   flex: 1;
 }
+
+.conflict-choices {
+  margin: 0;
+  padding-left: 1.2em;
+  font-size: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.align-start {
+  align-self: flex-start;
+  padding-left: 0;
+}

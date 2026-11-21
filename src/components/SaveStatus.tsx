@@ -26,6 +26,10 @@ export function SaveStatus({ session, onRetry }: { session: FileSession | null; 
       text = auth.status === 'needsRelogin' ? '再ログイン待ち' : '保存中…'
       cls += auth.status === 'needsRelogin' ? ' warn' : ''
       break
+    case 'conflict':
+      text = '競合'
+      cls += ' error'
+      break
     case 'error':
       text = '保存エラー'
       cls += ' error'

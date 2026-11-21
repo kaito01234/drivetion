@@ -1,10 +1,11 @@
-import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { getFileContent, getFileMeta, type DriveFile } from '../drive/files'
 import type { EditorHandle } from '../editor/MilkdownEditor'
 import { FileSession, waitForPendingSave } from '../sync/autosave'
 import { deleteDraft, loadDraft, type Draft } from '../sync/drafts'
 import { errorMessage } from '../state/format'
 import { displayName } from '../state/names'
+import { ConflictDialog } from './ConflictDialog'
 import { SaveStatus } from './SaveStatus'
 
 // エディタ(ProseMirror + remark)は大きいので、一覧の表示を先に出せるよう遅延読み込みする
@@ -38,6 +39,8 @@ export function EditorPane({ file, showBack, onBack, onFileUpdated }: Props) {
     />
   )
 }
+
+const noopSubscribe = () => () => {}
 
 type Phase =
   | { kind: 'loading' }
@@ -152,6 +155,17 @@ function FileEditor({
   )
 
   const session = phase.kind === 'ready' ? phase.session : null
+  const conflict = useSyncExternalStore(
+    session?.subscribe ?? noopSubscribe,
+    () => session?.getSnapshot().conflict ?? null,
+  )
+
+  async function reloadDiscardingMine() {
+    const s = sessionRef.current
+    sessionRef.current = null
+    if (s) await s.resolveByDiscard()
+    await load()
+  }
 
   return (
     <main className="editor-pane">
@@ -212,6 +226,19 @@ function FileEditor({
             </div>
           </div>
         </div>
+      )}
+
+      {session && conflict && (
+        <ConflictDialog
+          remote={conflict}
+          getMyContent={() => editorRef.current?.getMarkdown() ?? session.currentContent}
+          onReload={() => void reloadDiscardingMine()}
+          onOverwrite={() => {
+            const md = editorRef.current?.getMarkdown()
+            if (md != null) session.edit(md)
+            void session.resolveByOverwrite()
+          }}
+        />
       )}
 
       {phase.kind === 'ready' && (

@@ -27,7 +27,7 @@ export function FileList(props: Props) {
         <h1 className="folder-name" title={props.folderName}>
           {props.folderName}
         </h1>
-        <button className="btn icon" onClick={props.onRefresh} title="再読み込み" aria-label="再読み込み">
+        <button className="btn icon" onClick={props.onRefresh} title="一覧を更新" aria-label="一覧を更新">
           ⟳
         </button>
         <button className="btn primary small" onClick={props.onCreate}>

@@ -5,19 +5,21 @@
  * - 編集のたびに IndexedDB へ下書きを書き、保存に成功したら消す
  */
 import { DriveError } from '../drive/client'
-import { updateFileContent, type DriveFile } from '../drive/files'
+import { getFileMeta, updateFileContent, type DriveFile } from '../drive/files'
 import { errorMessage } from '../state/format'
 import { deleteDraft, saveDraft } from './drafts'
 
 export const AUTOSAVE_DELAY_MS = 2000
 const RETRY_DELAYS_MS = [5_000, 15_000, 30_000, 60_000]
 
-export type SaveStatus = 'saved' | 'dirty' | 'saving' | 'error'
+export type SaveStatus = 'saved' | 'dirty' | 'saving' | 'error' | 'conflict'
 
 export interface SessionSnapshot {
   status: SaveStatus
   error: string | null
   lastSavedAt: number | null
+  /** 競合が起きたとき、Drive 上の最新のファイル情報 */
+  conflict: DriveFile | null
 }
 
 export interface Baseline {
@@ -43,6 +45,7 @@ export class FileSession {
   private retryCount = 0
   private running: Promise<void> | null = null
   private disposed = false
+  private forceSave = false
 
   constructor(
     private file: DriveFile,
@@ -62,7 +65,12 @@ export class FileSession {
       this.content = remoteContent
       this.base = { version: file.version, md5: file.md5Checksum }
     }
-    this.snap = { status: this.isDirty ? 'dirty' : 'saved', error: null, lastSavedAt: null }
+    this.snap = {
+      status: this.isDirty ? 'dirty' : 'saved',
+      error: null,
+      lastSavedAt: null,
+      conflict: null,
+    }
     if (this.isDirty) this.schedule()
     window.addEventListener('online', this.handleOnline)
   }
@@ -74,7 +82,7 @@ export class FileSession {
   }
 
   get isDirty() {
-    return this.content !== this.savedContent
+    return this.forceSave || this.content !== this.savedContent
   }
 
   get currentContent() {
@@ -102,6 +110,11 @@ export class FileSession {
   edit(markdown: string) {
     if (this.disposed || markdown === this.content) return
     this.content = markdown
+    if (this.snap.status === 'conflict') {
+      // 競合の解決待ち: 保存はしないが、入力内容は下書きに残す
+      void this.writeDraft()
+      return
+    }
     if (this.isDirty) {
       void this.writeDraft()
       if (this.snap.status !== 'saving') this.set({ status: 'dirty', error: null })
@@ -137,15 +150,48 @@ export class FileSession {
     this.listeners.clear()
   }
 
-  /** 自動保存してよい状態か(競合の解決待ちなどでは止める) */
+  /**
+   * 競合の解決: 自分の内容で上書きする。
+   * Drive 上の最新版を新しい基準にして保存する(その間にさらに更新されていれば、再び競合になる)。
+   */
+  resolveByOverwrite(): Promise<void> {
+    const remote = this.snap.conflict
+    if (this.snap.status !== 'conflict' || !remote) return Promise.resolve()
+    this.base = { version: remote.version, md5: remote.md5Checksum }
+    // 内容を元に戻していた場合でも、上書きを選んだのだから保存する
+    this.forceSave = true
+    this.set({ status: 'dirty', conflict: null, error: null })
+    return this.flush()
+  }
+
+  /** 競合の解決: 自分の変更を破棄する。呼び出し側で Drive から読み込み直すこと */
+  async resolveByDiscard(): Promise<void> {
+    this.dispose()
+    await deleteDraft(this.file.id)
+  }
+
+  /** 自動保存してよい状態か(競合の解決待ちでは止める) */
   private canAutoSave(): boolean {
-    return true
+    return !this.disposed && this.snap.status !== 'conflict'
   }
 
   private async save(): Promise<void> {
     const snapshot = this.content
     this.set({ status: 'saving', error: null })
     try {
+      // 競合検知: 保存の直前に Drive 上の版を確認し、開いた時点(前回の保存時点)から変わっていれば上書きしない
+      const remote = await getFileMeta(this.file.id)
+      if (remote.version !== this.base.version) {
+        if (remote.md5Checksum && remote.md5Checksum === this.base.md5) {
+          // 版は進んだが内容は同じ(名前変更など)。競合ではないので基準だけ更新する
+          this.base = { version: remote.version, md5: remote.md5Checksum }
+        } else {
+          this.file = { ...this.file, name: remote.name }
+          void this.writeDraft()
+          this.set({ status: 'conflict', conflict: remote, error: null })
+          return
+        }
+      }
       const meta = await updateFileContent(this.file.id, snapshot)
       this.afterSaved(meta, snapshot)
     } catch (e) {
@@ -157,6 +203,7 @@ export class FileSession {
     this.file = meta
     this.base = { version: meta.version, md5: meta.md5Checksum }
     this.savedContent = snapshot
+    this.forceSave = false
     this.retryCount = 0
     this.onSaved?.(meta)
     if (this.isDirty) {

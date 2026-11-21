@@ -11,8 +11,8 @@ export default defineConfig({
       injectRegister: false,
       includeAssets: ['icons/apple-touch-icon.png', 'icons/favicon-32.png', 'icons/icon.svg'],
       manifest: {
-        name: 'Memo',
-        short_name: 'Memo',
+        name: 'drivetion',
+        short_name: 'drivetion',
         description: 'Google ドライブに保存する Markdown メモ',
         lang: 'ja',
         start_url: '/',

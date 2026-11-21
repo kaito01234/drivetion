@@ -52,7 +52,7 @@ export async function getFileContent(fileId: string): Promise<string> {
 }
 
 function multipartBody(metadata: object, content: string, contentType: string) {
-  const boundary = `memo-${crypto.randomUUID()}`
+  const boundary = `drivetion-${crypto.randomUUID()}`
   const body =
     `--${boundary}\r\n` +
     'Content-Type: application/json; charset=UTF-8\r\n\r\n' +

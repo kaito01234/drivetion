@@ -5,7 +5,7 @@ export function LoginScreen() {
   return (
     <div className="center-screen">
       <div className="card">
-        <h1>Memo</h1>
+        <h1>drivetion</h1>
         <p className="muted">Google ドライブに保存する Markdown メモ</p>
         <button className="btn primary" onClick={() => auth.login()} disabled={busy}>
           {busy ? 'ログイン中…' : 'Google でログイン'}

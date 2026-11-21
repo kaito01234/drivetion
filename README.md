@@ -1,4 +1,4 @@
-# Memo — Google ドライブに保存する Markdown メモ
+# drivetion — Google ドライブに保存する Markdown メモ
 
 PC と iPhone のブラウザから、Google ドライブ上の同じ Markdown ファイルを編集する個人用メモアプリです。
 
@@ -56,7 +56,7 @@ public/        アイコン, _headers(Cloudflare Pages 用)
 ### 1-1. プロジェクトを作成する
 1. <https://console.cloud.google.com/> を開きます。
 2. 画面上部のプロジェクト選択 →「新しいプロジェクト」を選びます。
-3. 名前(例: `memo-app`)を入力して作成し、作成したプロジェクトを選択します。
+3. 名前(例: `drivetion`)を入力して作成し、作成したプロジェクトを選択します。
 
 ### 1-2. Google Drive API を有効にする
 1. 「API とサービス」→「ライブラリ」を開きます。
@@ -66,7 +66,7 @@ public/        アイコン, _headers(Cloudflare Pages 用)
 新しいコンソールでは「Google Auth Platform」という名前で表示されます。
 
 1. 「API とサービス」→「OAuth 同意画面」(または「Google Auth Platform」→「概要」→「開始」)を開きます。
-2. アプリ情報: アプリ名(例: `Memo`)、ユーザーサポートメール(自分のアドレス)を入力します。
+2. アプリ情報: アプリ名(例: `drivetion`)、ユーザーサポートメール(自分のアドレス)を入力します。
 3. 対象(User Type): **外部** を選びます。Google Workspace 組織内だけで使う場合は「内部」でもかまいません。「内部」ならテストユーザーの登録は不要です。
 4. 連絡先情報: 自分のメールアドレスを入力し、作成します。
 5. 「データアクセス」(スコープ)→「スコープを追加または削除」で、次のスコープを追加して保存します。
@@ -80,7 +80,7 @@ public/        アイコン, _headers(Cloudflare Pages 用)
 ### 1-4. OAuth クライアント ID を作成する
 1. 「API とサービス」→「認証情報」→「認証情報を作成」→「OAuth クライアント ID」を選びます(または「Google Auth Platform」→「クライアント」→「クライアントを作成」)。
 2. アプリケーションの種類: **ウェブ アプリケーション** を選びます。
-3. 名前: 任意(例: `memo-web`)。
+3. 名前: 任意(例: `drivetion-web`)。
 4. **承認済みの JavaScript 生成元** に、次のセクションの URL を登録します。
 5. 作成すると表示される **クライアント ID**(`xxxx.apps.googleusercontent.com`)を控えます。
    - クライアントシークレットは使いません。
@@ -173,7 +173,7 @@ VITE_GOOGLE_CLIENT_ID=xxxx.apps.googleusercontent.com npm run build
 ```
 
 ```bash
-npx wrangler pages deploy dist --project-name memo-app
+npx wrangler pages deploy dist --project-name drivetion
 ```
 
 初回は `npx wrangler login` で Cloudflare にログインします。プロジェクトがなければ作成を確認されます。

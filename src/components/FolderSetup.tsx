@@ -9,7 +9,7 @@ import { validateName } from '../state/names'
  * 一度作れば、別の端末でも自動的に同じフォルダが使われる。
  */
 export function FolderSetup({ onReady }: { onReady: (f: FolderInfo) => void }) {
-  const [name, setName] = useState('Memo')
+  const [name, setName] = useState('drivetion')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 

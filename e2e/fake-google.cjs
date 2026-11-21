@@ -37,7 +37,7 @@ function createFake() {
     if (p === '/drive/v3/files' && method === 'GET') {
       const q = url.searchParams.get('q')
       let list = [...st.files.values()].filter((f) => !f.trashed)
-      if (q.includes('appProperties has')) list = list.filter((f) => f.folder && f.appProperties.memoAppRoot === '1')
+      if (q.includes('appProperties has')) list = list.filter((f) => f.folder && f.appProperties.drivetionRoot === '1')
       const pm = q.match(/'([^']+)' in parents/)
       if (pm) list = list.filter((f) => f.parents.includes(pm[1]) && !f.folder)
       return json(200, { files: list.map((f) => ({ ...meta(f), name: f.name })) })
@@ -64,7 +64,7 @@ function createFake() {
     }
     if (p === '/upload/drive/v3/files' && method === 'POST') {
       const body = req.postData()
-      const parts = body.split(/--memo-[^\r\n]+/)
+      const parts = body.split(/--drivetion-[^\r\n]+/)
       const md = JSON.parse(parts[1].split('\r\n\r\n')[1])
       const content = parts[2].split('\r\n\r\n').slice(1).join('\r\n\r\n').replace(/\r\n$/, '')
       const f = st.newFile({ name: md.name, parents: md.parents, content })

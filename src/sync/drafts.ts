@@ -15,7 +15,7 @@ export interface Draft {
   updatedAt: number
 }
 
-const store = createStore('memo-app', 'drafts')
+const store = createStore('drivetion', 'drafts')
 
 export async function loadDraft(fileId: string): Promise<Draft | undefined> {
   try {

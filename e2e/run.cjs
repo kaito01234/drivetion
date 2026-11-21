@@ -28,7 +28,7 @@ async function setup(browser, ctxOpts = {}) {
   await page.getByRole('button', { name: 'Google でログイン' }).click()
   await page.getByRole('button', { name: 'フォルダを作成' }).click()
   await page.getByText('メモがありません').waitFor()
-  assert([...fake.st.files.values()].some((f) => f.folder && f.appProperties.memoAppRoot === '1'), 'folder created with marker')
+  assert([...fake.st.files.values()].some((f) => f.folder && f.appProperties.drivetionRoot === '1'), 'folder created with marker')
 
   await page.getByRole('button', { name: '＋ 新規' }).click()
   await page.locator('.modal input').fill('テスト')

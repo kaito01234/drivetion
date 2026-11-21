@@ -3,8 +3,8 @@
  * iPhone のホーム画面アプリは閉じると sessionStorage が消えるため localStorage に保存する
  * (有効期限内なら再起動後もログインし直さずに済む)。
  */
-const KEY = 'memo.token'
-const LOGGED_IN_KEY = 'memo.hasLoggedIn'
+const KEY = 'drivetion.token'
+const LOGGED_IN_KEY = 'drivetion.hasLoggedIn'
 
 /** 失効の少し前から「期限切れ」として扱う */
 const EXPIRY_MARGIN_MS = 60_000

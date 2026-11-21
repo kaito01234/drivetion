@@ -16,7 +16,7 @@ import { FileList } from './FileList'
 import { FolderSetup } from './FolderSetup'
 import { NameDialog } from './NameDialog'
 
-const LAST_FILE_KEY = 'memo.lastFileId'
+const LAST_FILE_KEY = 'drivetion.lastFileId'
 
 function rememberLastFile(id: string | null) {
   try {

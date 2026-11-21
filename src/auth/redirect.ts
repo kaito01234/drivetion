@@ -6,7 +6,7 @@
  */
 import { CLIENT_ID, DRIVE_SCOPE } from './config'
 
-const STATE_KEY = 'memo.oauthState'
+const STATE_KEY = 'drivetion.oauthState'
 const AUTH_ENDPOINT = 'https://accounts.google.com/o/oauth2/v2/auth'
 
 export function redirectUri(): string {

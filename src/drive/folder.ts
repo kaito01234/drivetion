@@ -6,8 +6,8 @@
 import { DRIVE_API, DriveError, driveJson } from './client'
 import { FOLDER_MIME } from './files'
 
-const STORAGE_KEY = 'memo.folder'
-const MARKER_KEY = 'memoAppRoot'
+const STORAGE_KEY = 'drivetion.folder'
+const MARKER_KEY = 'drivetionRoot'
 const MARKER_VALUE = '1'
 
 export interface FolderInfo {

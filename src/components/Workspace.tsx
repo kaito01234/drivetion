@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { auth } from '../auth/session'
 import {
   createMarkdownFile,
@@ -16,6 +16,17 @@ import { FileList } from './FileList'
 import { FolderSetup } from './FolderSetup'
 import { NameDialog } from './NameDialog'
 
+const LAST_FILE_KEY = 'memo.lastFileId'
+
+function rememberLastFile(id: string | null) {
+  try {
+    if (id) localStorage.setItem(LAST_FILE_KEY, id)
+    else localStorage.removeItem(LAST_FILE_KEY)
+  } catch {
+    /* noop */
+  }
+}
+
 type Dialog = { kind: 'create' } | { kind: 'rename'; file: DriveFile } | null
 
 const sortByModified = (a: DriveFile, b: DriveFile) => b.modifiedTime.localeCompare(a.modifiedTime)
@@ -32,6 +43,8 @@ export function Workspace() {
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [mobileView, setMobileView] = useState<'list' | 'editor'>('list')
   const [dialog, setDialog] = useState<Dialog>(null)
+  const restoredRef = useRef(false)
+  const openFileRef = useRef<(f: DriveFile) => void>(() => {})
 
   const loadFolder = useCallback(async () => {
     setFolderError(null)
@@ -52,7 +65,15 @@ export function Workspace() {
     setListLoading(true)
     setListError(null)
     try {
-      setFiles(await listMarkdownFiles(folder.id))
+      const list = await listMarkdownFiles(folder.id)
+      setFiles(list)
+      // 起動直後(再ログインのリダイレクトから戻った場合を含む)は、前回開いていたファイルを開き直す
+      if (!restoredRef.current) {
+        restoredRef.current = true
+        const lastId = localStorage.getItem(LAST_FILE_KEY)
+        const last = lastId ? list.find((f) => f.id === lastId) : undefined
+        if (last) openFileRef.current(last)
+      }
     } catch (e) {
       setListError(errorMessage(e))
     } finally {
@@ -66,7 +87,10 @@ export function Workspace() {
 
   // iPhone: 一覧 ⇔ エディタの切り替えをブラウザの「戻る」と連動させる
   useEffect(() => {
-    const onPop = () => setMobileView('list')
+    const onPop = () => {
+      rememberLastFile(null)
+      setMobileView('list')
+    }
     window.addEventListener('popstate', onPop)
     return () => window.removeEventListener('popstate', onPop)
   }, [])
@@ -74,6 +98,7 @@ export function Workspace() {
   const selectFile = useCallback(
     (file: DriveFile) => {
       setSelectedId(file.id)
+      rememberLastFile(file.id)
       if (!isWide && mobileView === 'list') {
         history.pushState({ view: 'editor' }, '')
         setMobileView('editor')
@@ -81,8 +106,10 @@ export function Workspace() {
     },
     [isWide, mobileView],
   )
+  openFileRef.current = selectFile
 
   const backToList = useCallback(() => {
+    rememberLastFile(null)
     if (history.state?.view === 'editor') history.back()
     else setMobileView('list')
   }, [])
@@ -112,6 +139,7 @@ export function Workspace() {
       setFiles((prev) => prev.filter((f) => f.id !== file.id))
       if (selectedId === file.id) {
         setSelectedId(null)
+        rememberLastFile(null)
         if (!isWide) backToList()
       }
     } catch (e) {
@@ -159,7 +187,14 @@ export function Workspace() {
           }}
         />
       )}
-      {showEditor && <EditorPane file={selectedFile} showBack={!isWide} onBack={backToList} />}
+      {showEditor && (
+        <EditorPane
+          file={selectedFile}
+          showBack={!isWide}
+          onBack={backToList}
+          onFileUpdated={upsertFile}
+        />
+      )}
 
       {dialog?.kind === 'create' && (
         <NameDialog

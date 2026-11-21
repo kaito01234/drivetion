@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test:e2e": "node e2e/run.cjs"
   },
   "dependencies": {
     "@milkdown/kit": "^7.23.0",
@@ -22,6 +23,8 @@
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.3.0",
     "typescript": "~5.9.3",
-    "vite": "^8.3.8"
+    "vite": "^8.3.8",
+    "vite-plugin-pwa": "^2.0.0",
+    "workbox-window": "^7.4.1"
   }
 }

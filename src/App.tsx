@@ -2,9 +2,19 @@ import { CLIENT_ID } from './auth/config'
 import { useAuth } from './auth/session'
 import { LoginScreen } from './components/LoginScreen'
 import { ReloginBanner } from './components/ReloginBanner'
+import { UpdatePrompt } from './components/UpdatePrompt'
 import { Workspace } from './components/Workspace'
 
 export function App() {
+  return (
+    <>
+      <Main />
+      <UpdatePrompt />
+    </>
+  )
+}
+
+function Main() {
   const { status } = useAuth()
 
   if (!CLIENT_ID) {

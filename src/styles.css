@@ -1,0 +1,364 @@
+:root {
+  --bg: #ffffff;
+  --bg-sub: #f6f6f8;
+  --fg: #1d1d1f;
+  --muted: #6e6e73;
+  --border: #e3e3e8;
+  --accent: #2f6fe4;
+  --accent-fg: #ffffff;
+  --selected: #e8effc;
+  --danger: #d93025;
+  --warn-bg: #fff4d6;
+  --warn-fg: #6b4e00;
+  --code-bg: #f1f1f4;
+  --radius: 8px;
+  --font: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', 'Hiragino Kaku Gothic ProN',
+    'Noto Sans JP', 'Segoe UI', sans-serif;
+  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  color-scheme: light dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1c1c1e;
+    --bg-sub: #242426;
+    --fg: #f2f2f7;
+    --muted: #98989f;
+    --border: #3a3a3c;
+    --accent: #5b8ff0;
+    --selected: #2c3a55;
+    --danger: #ff6b5e;
+    --warn-bg: #3d3416;
+    --warn-fg: #f5dd9a;
+    --code-bg: #2c2c2e;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font);
+  font-size: 16px;
+  line-height: 1.6;
+  -webkit-text-size-adjust: 100%;
+  overscroll-behavior: none;
+}
+
+#root {
+  display: flex;
+  flex-direction: column;
+  padding-top: env(safe-area-inset-top);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
+
+button,
+input {
+  font: inherit;
+  color: inherit;
+}
+
+/* iOS は 16px 未満の入力欄にフォーカスすると画面を拡大するため 16px 以上にする */
+input {
+  font-size: 16px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+  min-width: 0;
+}
+
+code {
+  font-family: var(--mono);
+  background: var(--code-bg);
+  padding: 0.1em 0.3em;
+  border-radius: 4px;
+}
+
+h1,
+h2 {
+  margin: 0;
+}
+
+.muted {
+  color: var(--muted);
+}
+
+.error-text {
+  color: var(--danger);
+}
+
+/* ---------- buttons ---------- */
+.btn {
+  border: 1px solid var(--border);
+  background: var(--bg);
+  border-radius: var(--radius);
+  padding: 8px 14px;
+  cursor: pointer;
+  white-space: nowrap;
+  -webkit-tap-highlight-color: transparent;
+}
+.btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.btn.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-fg);
+}
+.btn.danger {
+  color: var(--danger);
+}
+.btn.small {
+  padding: 4px 10px;
+  font-size: 14px;
+}
+.btn.icon {
+  border: none;
+  background: transparent;
+  padding: 4px 8px;
+  font-size: 20px;
+  line-height: 1;
+  min-width: 36px;
+  min-height: 36px;
+}
+.btn.link {
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  text-decoration: underline;
+}
+
+/* ---------- screens ---------- */
+.center-screen {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.card {
+  width: 100%;
+  max-width: 420px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 28px 24px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--bg-sub);
+}
+.card h1 {
+  font-size: 22px;
+}
+.card p {
+  margin: 0;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 14px;
+}
+
+.relogin-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 14px;
+  background: var(--warn-bg);
+  color: var(--warn-fg);
+  font-size: 14px;
+  border-bottom: 1px solid var(--border);
+}
+.relogin-banner > span {
+  flex: 1;
+}
+
+/* ---------- workspace ---------- */
+.workspace {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+}
+
+.pane-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  min-height: 52px;
+  border-bottom: 1px solid var(--border);
+}
+
+.file-list {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--bg-sub);
+}
+.workspace.wide .file-list {
+  width: 300px;
+  flex-shrink: 0;
+  border-right: 1px solid var(--border);
+}
+.workspace.narrow .file-list {
+  flex: 1;
+}
+
+.folder-name {
+  flex: 1;
+  font-size: 17px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.file-list ul {
+  list-style: none;
+  margin: 0;
+  padding: 4px 0;
+  overflow-y: auto;
+  flex: 1;
+  -webkit-overflow-scrolling: touch;
+}
+
+.file-list li {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  margin: 0 6px;
+  border-radius: var(--radius);
+}
+.file-list li.selected {
+  background: var(--selected);
+}
+
+.file-item {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  border: none;
+  background: transparent;
+  text-align: left;
+  padding: 8px 10px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.file-name {
+  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.file-date {
+  font-size: 12px;
+}
+
+.file-menu {
+  flex-basis: 100%;
+  display: flex;
+  gap: 8px;
+  padding: 0 10px 8px;
+}
+
+.list-message {
+  padding: 16px;
+  font-size: 14px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.pane-footer {
+  padding: 6px 12px calc(6px + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--border);
+}
+
+.editor-pane {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.editor-pane.empty {
+  align-items: center;
+  justify-content: center;
+}
+
+.editor-title {
+  flex: 1;
+  font-size: 17px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.editor-body {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 16px 20px calc(40vh + env(safe-area-inset-bottom));
+}
+
+/* ---------- modal ---------- */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgb(0 0 0 / 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  z-index: 100;
+}
+.modal {
+  width: 100%;
+  max-width: 420px;
+  background: var(--bg);
+  border-radius: 14px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: 0 10px 40px rgb(0 0 0 / 0.25);
+}
+.modal h2 {
+  font-size: 18px;
+}
+.modal p {
+  margin: 0;
+}
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.name-input {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.name-input input {
+  flex: 1;
+}

@@ -8,7 +8,8 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
-    "test:e2e": "node e2e/run.cjs"
+    "test:e2e": "node e2e/run.cjs",
+    "deploy": "npm run build && wrangler deploy"
   },
   "dependencies": {
     "@milkdown/kit": "^7.23.0",
@@ -25,6 +26,7 @@
     "typescript": "~5.9.3",
     "vite": "^8.3.8",
     "vite-plugin-pwa": "^2.0.0",
-    "workbox-window": "^7.4.1"
+    "workbox-window": "^7.4.1",
+    "wrangler": "^4.166.0"
   }
 }

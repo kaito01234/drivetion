@@ -3,7 +3,7 @@
 PC と iPhone のブラウザから、Google ドライブ上の同じ Markdown ファイルを編集する個人用メモアプリです。
 
 - バックエンドはありません。ブラウザから Google Drive API v3 を直接呼び出します。
-- データの保存先は **Google ドライブだけ** です。Cloudflare Pages は静的ファイルを配信するだけで、KV・D1・R2 などは使いません。
+- データの保存先は **Google ドライブだけ** です。Cloudflare(Workers の静的ファイル配信)は静的ファイルを配信するだけで、サーバー側のコードや KV・D1・R2 などは使いません。
 - 未保存の内容は、再ログイン中やオフライン時に備えて **その端末のブラウザ内(IndexedDB)** に一時保存します。保存に成功したら削除します。
 
 ## 機能
@@ -46,7 +46,8 @@ src/
 ├─ components/ 画面部品(一覧・エディタ・ダイアログ・バナー)
 └─ state/      小さなユーティリティ
 e2e/           Google をモックした E2E テスト
-public/        アイコン, _headers(Cloudflare Pages 用)
+public/        アイコン, _headers(レスポンスヘッダーの設定)
+wrangler.jsonc Cloudflare Workers の設定(dist を静的ファイルとして配信)
 ```
 
 ---
@@ -92,18 +93,19 @@ public/        アイコン, _headers(Cloudflare Pages 用)
 |---|---|
 | ローカル開発(`npm run dev`) | `http://localhost:5173` |
 | ローカルでの本番ビルド確認(`npm run preview`) | `http://localhost:4173` |
-| Cloudflare Pages(本番) | `https://<プロジェクト名>.pages.dev` |
+| Cloudflare Workers(本番) | `https://drivetion.<アカウントのサブドメイン>.workers.dev` |
 | 独自ドメインを使う場合 | `https://memo.example.com` など |
 
 - 末尾の `/` やパスは付けません(生成元はスキーム + ホスト + ポートです)。
-- ワイルドカードは使えません。Cloudflare Pages のプレビュー URL(`https://<ハッシュ>.<プロジェクト名>.pages.dev`)は毎回変わるので、ログインは本番 URL で行ってください。プレビュー用のブランチ URL(`https://<ブランチ>.<プロジェクト名>.pages.dev`)なら固定なので、必要なら個別に追加できます。
+- ワイルドカードは使えません。本番以外のブランチのプレビュー URL は毎回変わるので、ログインは本番 URL で行ってください。
+- アカウントのサブドメイン(`<アカウントのサブドメイン>` の部分)は、Cloudflare ダッシュボードの「Workers & Pages」の画面や、デプロイ完了時の表示で確認できます。
 - 設定が反映されるまで数分かかることがあります。
 
 ### 1-6.(任意)リダイレクト方式を使う場合
 iPhone のホーム画面アプリで、ログインのポップアップから戻ってこない場合の代替手段です(後述の「iPhone で使う」を参照)。`VITE_AUTH_MODE=auto` または `redirect` にする場合は、同じクライアントの **承認済みのリダイレクト URI** に、末尾 `/` 付きの URL を登録します。
 
 - `http://localhost:5173/`
-- `https://<プロジェクト名>.pages.dev/`
+- `https://drivetion.<アカウントのサブドメイン>.workers.dev/`
 
 ---
 
@@ -148,39 +150,63 @@ npm run preview
 
 ---
 
-## 3. Cloudflare Pages へのデプロイ
+## 3. Cloudflare Workers へのデプロイ
 
-### 方法 A: Git リポジトリ連携(おすすめ)
-1. このリポジトリを GitHub または GitLab に push します。
-2. Cloudflare ダッシュボード →「Workers & Pages」→「作成」→「Pages」→「Git に接続」で、リポジトリを選びます。
+Cloudflare Workers の静的ファイル配信(Static Assets)を使います。`wrangler.jsonc` で `dist` を配信する設定だけをしていて、**サーバー側のコードはありません**。
+
+> Cloudflare は新しいプロジェクトには Pages ではなく Workers を勧めています(作成画面で Pages は「レガシー」と表示されます)。
+
+### 方法 A: GitHub 連携(Workers Builds、おすすめ)
+1. Cloudflare ダッシュボード →「**Workers & Pages**」→「**Create application**(アプリケーションを作成)」を開きます。
+2. 「**Import a repository**(リポジトリをインポート)」→ GitHub と連携し、このリポジトリを選びます。
+   - GitHub 側では「Only select repositories」でこのリポジトリだけを許可すれば十分です。
 3. ビルド設定を次のようにします。
-   - フレームワーク プリセット: `Vite`(または「なし」)
-   - ビルド コマンド: `npm run build`
-   - ビルド出力ディレクトリ: `dist`
-4. 「環境変数(詳細設定)」に次を追加します。
+
+   | 項目 | 設定値 |
+   |---|---|
+   | Project name(プロジェクト名) | `drivetion`(**`wrangler.jsonc` の `name` と一致させる**。違うとビルドが失敗します) |
+   | Build command(ビルドコマンド) | `npm run build` |
+   | Deploy command(デプロイコマンド) | `npx wrangler deploy` |
+   | Non-production branch deploy command(本番以外のブランチ) | `npx wrangler versions upload`(既定のまま) |
+   | Path(ルートディレクトリ) | `/`(既定のまま) |
+
+4. 「**Advanced settings**(詳細設定)」→「**Build variables**(ビルド変数)」に次を追加します。
    - `VITE_GOOGLE_CLIENT_ID` = クライアント ID
    - `NODE_VERSION` = `22`(ビルド環境の Node.js を固定します)
    - 必要なら `VITE_AUTH_MODE`
-5. 「保存してデプロイ」を押します。表示された `https://<プロジェクト名>.pages.dev` を、Google Cloud の「承認済みの JavaScript 生成元」に追加します(1-5)。
+5. 「**Deploy**(デプロイ)」を押します。完了すると `https://drivetion.<アカウントのサブドメイン>.workers.dev` が表示されます。この URL を、Google Cloud の「承認済みの JavaScript 生成元」に追加します(1-5)。
 
-デプロイ後に環境変数を変更する場合は、「設定」→「変数とシークレット」(本番 / プレビューで別々に設定できます)で変更し、**「デプロイ」→ 最新のデプロイの「再試行」** で再ビルドします。値はビルド時に埋め込まれるため、再ビルドしないと反映されません。
+以後は `main` に push すると、自動でビルドとデプロイが実行されます。
 
-### 方法 B: Wrangler で直接アップロード
-ローカルでビルドしてアップロードします。この場合、環境変数はローカルのビルド時に渡します(`.env.local` でも可)。
+#### 環境変数の設定場所と再デプロイ
+- `VITE_` で始まる変数は **ビルド時** に埋め込まれます。設定場所は Worker の **Settings → Build → Variables and secrets**(**ビルド変数**)です。
+  - Settings 直下の「Variables and Secrets」は **実行時** の変数で、ビルドには使われません(このアプリでは使いません)。
+- 変数を変えたら、ビルドし直さないと反映されません。次のどちらかで再デプロイします。
+  - **Deployments**(デプロイ)タブ → 最新のビルドの詳細を開き、**Retry build**(ビルドを再試行)を押す
+  - 空のコミットを push する
+
+    ```bash
+    git commit --allow-empty -m "Redeploy"
+    ```
+
+    ```bash
+    git push
+    ```
+
+### 方法 B: ローカルから Wrangler でデプロイ
+環境変数はローカルのビルド時に渡します(`.env.local` に書いてもかまいません)。初回は `npx wrangler login` で Cloudflare にログインします。
 
 ```bash
-VITE_GOOGLE_CLIENT_ID=xxxx.apps.googleusercontent.com npm run build
+VITE_GOOGLE_CLIENT_ID=xxxx.apps.googleusercontent.com npm run deploy
 ```
 
-```bash
-npx wrangler pages deploy dist --project-name drivetion
-```
-
-初回は `npx wrangler login` で Cloudflare にログインします。プロジェクトがなければ作成を確認されます。
+(`npm run deploy` は `npm run build && wrangler deploy` を実行します)
 
 ### 補足
-- `public/_headers` で、セキュリティ用のヘッダーと、`sw.js`・`index.html` のキャッシュ無効化を設定しています。`Cross-Origin-Opener-Policy` は GIS のポップアップが動くよう `same-origin-allow-popups` にしています(`same-origin` にするとログインできなくなります)。
-- SPA のフォールバック: Cloudflare Pages は `404.html` がなければ未知のパスに `index.html` を返すので、追加の設定は不要です。
+- `public/_headers` で、セキュリティ用のヘッダーと、`sw.js`・`index.html` のキャッシュ無効化を設定しています。Workers の静的ファイル配信でもこのファイルが使われます。`Cross-Origin-Opener-Policy` は GIS のポップアップが動くよう `same-origin-allow-popups` にしています(`same-origin` にするとログインできなくなります)。
+- SPA のフォールバック: `wrangler.jsonc` の `"not_found_handling": "single-page-application"` で、存在しないパスへのアクセスにも `index.html` を返します。
+- 本番以外のブランチのプレビュー URL は毎回変わるため、Google のログインには使えません。ログインは本番の `workers.dev` の URL(または独自ドメイン)で行ってください。
+- ローカルで Workers と同じ配信を確認する場合は、`npm run build` のあと `npx wrangler dev` を実行します。
 
 ---
 

@@ -1,4 +1,4 @@
-# Cloudflare Pages のレスポンスヘッダー設定
+# Cloudflare(Workers の静的ファイル配信)のレスポンスヘッダー設定
 /*
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
@@ -8,6 +8,8 @@
 
 # service worker と HTML は常に最新を取得させる(更新を確実に検知するため)
 /sw.js
+  Cache-Control: no-cache
+/
   Cache-Control: no-cache
 /index.html
   Cache-Control: no-cache

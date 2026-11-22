@@ -1,0 +1,13 @@
+// Cloudflare Workers の設定(静的ファイルの配信のみ。サーバー側のコードはありません)
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  // Cloudflare 上の Worker 名。Workers Builds で連携する場合は、管理画面の Worker 名と一致させること
+  "name": "drivetion",
+  "compatibility_date": "2026-11-01",
+  "assets": {
+    // npm run build の出力先
+    "directory": "./dist",
+    // 存在しないパスへのアクセスでも index.html を返す(SPA)
+    "not_found_handling": "single-page-application"
+  }
+}

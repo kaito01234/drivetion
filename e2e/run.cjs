@@ -88,6 +88,52 @@ async function setup(browser, ctxOpts = {}) {
   assert(await waitUntil(() => file.content.includes('401後')), 'saved after 401 + token refresh')
   assert((await page.evaluate(() => window.__gisRequests)) === gisBefore + 1, 'token re-requested once')
 
+  // remote update is pulled in when the window regains focus (no local changes)
+  await page.locator('.save-status', { hasText: '保存済み' }).waitFor()
+  fake.st.externalEdit(file.id, file.content + '\nリモート追記\n')
+  await page.evaluate(() => window.dispatchEvent(new Event('focus')))
+  await page.locator('.ProseMirror p', { hasText: 'リモート追記' }).waitFor({ timeout: 5000 })
+  assert(true, 'remote change pulled into editor on focus')
+  await page.locator('.save-status', { hasText: '他の端末の変更を反映' }).waitFor()
+  assert(true, 'merge notice shown')
+
+  // auto-merge: local edit on the last line + remote edit at the top (different lines)
+  await page.locator('.ProseMirror p').last().click()
+  await page.keyboard.press('End')
+  await page.keyboard.type(' ローカル')
+  await page.locator('.save-status', { hasText: '未保存の変更' }).waitFor()
+  fake.st.externalEdit(file.id, 'TOPリモート\n\n' + file.content)
+  assert(await waitUntil(() => file.content.includes('TOPリモート') && file.content.includes('ローカル')), 'auto-merged: ' + JSON.stringify(file.content))
+  await page.locator('.ProseMirror p', { hasText: 'TOPリモート' }).waitFor({ timeout: 5000 })
+  assert(await page.getByText('ほかの場所で更新されています').count() === 0, 'no conflict dialog for non-overlapping edits')
+  await page.locator('.save-status', { hasText: '他の端末の変更を反映' }).waitFor()
+  await sleep(2500)
+  const merged = file.content
+  assert(file.content === merged && file.content.includes('ローカル'), 'stable after merge (no extra overwrite)')
+
+  // checkbox toggling by click
+  fake.st.externalEdit(file.id, '- [ ] タスク1\n- [x] タスク2\n')
+  await page.evaluate(() => window.dispatchEvent(new Event('focus')))
+  const li1 = page.locator('.ProseMirror li[data-item-type="task"]').first()
+  await li1.waitFor({ timeout: 5000 })
+  const clickCheckbox = async (loc) => { const b = await loc.boundingBox(); await page.mouse.click(b.x - 14, b.y + 12) }
+  await clickCheckbox(li1)
+  assert(await waitUntil(() => file.content.includes('[x] タスク1')), 'checkbox ON saved: ' + JSON.stringify(file.content))
+  await clickCheckbox(page.locator('.ProseMirror li[data-item-type="task"]').nth(1))
+  assert(await waitUntil(() => file.content.includes('[ ] タスク2')), 'checkbox OFF saved: ' + JSON.stringify(file.content))
+  assert(file.content.startsWith('- [x] タスク1'), 'bullets serialized as "-"')
+  if (shots) await page.screenshot({ path: shots + '/tasks.png' })
+  // toolbar: turn a plain paragraph into a checklist item
+  await page.locator('.ProseMirror li p').last().click()
+  await page.keyboard.press('End')
+  await page.keyboard.press('Enter')
+  await page.keyboard.press('Enter')
+  await page.keyboard.type('新しい行')
+  await page.getByRole('button', { name: 'チェックリスト' }).click()
+  assert(await waitUntil(() => /\[ \] 新しい行/.test(file.content)), 'toolbar created checklist item: ' + JSON.stringify(file.content))
+  await page.locator('.ProseMirror p').last().click()
+  await page.keyboard.press('End')
+
   // draft survives: block network, type, reload page -> restore prompt
   fake.st.force401 = 0
   fake.st.offline = true

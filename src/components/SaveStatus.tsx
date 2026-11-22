@@ -1,4 +1,4 @@
-import { useSyncExternalStore } from 'react'
+import { useEffect, useState, useSyncExternalStore } from 'react'
 import { useAuth } from '../auth/session'
 import type { FileSession } from '../sync/autosave'
 
@@ -10,13 +10,23 @@ export function SaveStatus({ session, onRetry }: { session: FileSession | null; 
     session?.subscribe ?? EMPTY,
     session ? session.getSnapshot : () => null,
   )
+  // ほかの端末の変更を取り込んだ直後は、数秒だけそのことを表示する
+  const lastMergedAt = snap?.lastMergedAt ?? null
+  const [showMerged, setShowMerged] = useState(false)
+  useEffect(() => {
+    if (!lastMergedAt) return
+    setShowMerged(true)
+    const t = setTimeout(() => setShowMerged(false), 4000)
+    return () => clearTimeout(t)
+  }, [lastMergedAt])
+
   if (!snap) return null
 
   let cls = 'save-status'
   let text: string
   switch (snap.status) {
     case 'saved':
-      text = snap.lastSavedAt ? '保存済み' : '変更なし'
+      text = showMerged ? '他の端末の変更を反映' : snap.lastSavedAt ? '保存済み' : '変更なし'
       cls += ' ok'
       break
     case 'dirty':

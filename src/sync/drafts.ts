@@ -12,6 +12,8 @@ export interface Draft {
   /** 下書きの元になった Drive 上の版(競合検知の基準) */
   baseVersion: string
   baseMd5?: string
+  /** baseVersion の時点の内容(3-way マージの共通の祖先)。古い下書きには無い */
+  baseContent?: string
   updatedAt: number
 }
 

@@ -1,4 +1,5 @@
 import { lazy, Suspense, useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react'
+import { auth } from '../auth/session'
 import { getFileContent, getFileMeta, type DriveFile } from '../drive/files'
 import type { EditorHandle } from '../editor/MilkdownEditor'
 import { FileSession, waitForPendingSave } from '../sync/autosave'
@@ -42,11 +43,21 @@ export function EditorPane({ file, showBack, onBack, onFileUpdated }: Props) {
 
 const noopSubscribe = () => () => {}
 
+/** 開いている間、ほかの端末での更新を確認する間隔 */
+const REMOTE_CHECK_INTERVAL_MS = 30_000
+
 type Phase =
   | { kind: 'loading' }
   | { kind: 'error'; message: string }
   | { kind: 'askRestore'; meta: DriveFile; remote: string; draft: Draft }
-  | { kind: 'ready'; session: FileSession; initial: string; editorKey: number }
+  | {
+      kind: 'ready'
+      session: FileSession
+      initial: string
+      editorKey: number
+      /** エディタを作り直すときに、スクロール位置を引き継ぐ */
+      scrollTop?: number
+    }
 
 function FileEditor({
   file,
@@ -71,10 +82,15 @@ function FileEditor({
       sessionRef.current?.dispose()
       const session = new FileSession(meta, remote, {
         draft: draft
-          ? { content: draft.content, base: { version: draft.baseVersion, md5: draft.baseMd5 } }
+          ? {
+              content: draft.content,
+              base: { version: draft.baseVersion, md5: draft.baseMd5 },
+              baseContent: draft.baseContent,
+            }
           : undefined,
         onSaved: (m) => onFileUpdatedRef.current(m),
       })
+      session.setEditorBridge(() => editorRef.current?.getMarkdown() ?? null)
       sessionRef.current = session
       editorKeyRef.current++
       setPhase({
@@ -120,8 +136,7 @@ function FileEditor({
   const flushNow = useCallback(() => {
     const session = sessionRef.current
     if (!session) return Promise.resolve()
-    const md = editorRef.current?.getMarkdown()
-    if (md != null) session.edit(md)
+    session.syncFromEditor()
     return session.flush()
   }, [])
 
@@ -159,6 +174,44 @@ function FileEditor({
     session?.subscribe ?? noopSubscribe,
     () => session?.getSnapshot().conflict ?? null,
   )
+
+  // ほかの端末の変更を取り込んだ(またはマージした)ら、エディタをその内容で作り直す
+  const contentRevision = useSyncExternalStore(
+    session?.subscribe ?? noopSubscribe,
+    () => session?.getSnapshot().contentRevision ?? 0,
+  )
+  useEffect(() => {
+    if (!session || contentRevision === 0) return
+    const scrollTop = editorRef.current?.getScrollTop()
+    editorKeyRef.current++
+    setPhase((p) =>
+      p.kind === 'ready' && p.session === session
+        ? { ...p, initial: session.currentContent, editorKey: editorKeyRef.current, scrollTop }
+        : p,
+    )
+  }, [session, contentRevision])
+
+  // ほかの端末での更新を確認する: 画面に戻ったとき・オンラインに戻ったとき・表示中は定期的に
+  useEffect(() => {
+    if (!session) return
+    const check = () => {
+      // トークンが切れているときは確認しない(バックグラウンド処理で再ログインを促さない)
+      if (document.visibilityState === 'visible' && auth.hasValidToken()) void session.checkRemote()
+    }
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') check()
+    }
+    document.addEventListener('visibilitychange', onVisible)
+    window.addEventListener('focus', check)
+    window.addEventListener('online', check)
+    const timer = setInterval(check, REMOTE_CHECK_INTERVAL_MS)
+    return () => {
+      document.removeEventListener('visibilitychange', onVisible)
+      window.removeEventListener('focus', check)
+      window.removeEventListener('online', check)
+      clearInterval(timer)
+    }
+  }, [session])
 
   async function reloadDiscardingMine() {
     const s = sessionRef.current
@@ -234,8 +287,7 @@ function FileEditor({
           getMyContent={() => editorRef.current?.getMarkdown() ?? session.currentContent}
           onReload={() => void reloadDiscardingMine()}
           onOverwrite={() => {
-            const md = editorRef.current?.getMarkdown()
-            if (md != null) session.edit(md)
+            session.syncFromEditor()
             void session.resolveByOverwrite()
           }}
         />
@@ -246,6 +298,7 @@ function FileEditor({
           <MilkdownEditor
             key={phase.editorKey}
             defaultValue={phase.initial}
+            initialScrollTop={phase.scrollTop}
             onChange={(md) => phase.session.edit(md)}
             handleRef={editorRef}
           />

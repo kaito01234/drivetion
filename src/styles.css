@@ -439,16 +439,37 @@ h2 {
   list-style: none;
   position: relative;
 }
+/* チェックボックスの押せる範囲(見た目より広くとって、指でも押しやすくする) */
 .milkdown .ProseMirror li[data-item-type='task']::before {
-  content: '☐';
+  content: '';
   position: absolute;
-  left: -1.3em;
-  color: var(--muted);
+  left: -1.9em;
+  top: 0;
+  width: 1.9em;
+  height: 1.6em;
+  cursor: pointer;
 }
-.milkdown .ProseMirror li[data-item-type='task'][data-checked='true']::before {
-  content: '☑';
+/* チェックボックスの見た目 */
+.milkdown .ProseMirror li[data-item-type='task']::after {
+  content: '';
+  position: absolute;
+  left: -1.45em;
+  top: 0.3em;
+  width: 1em;
+  height: 1em;
+  box-sizing: border-box;
+  border: 1.5px solid var(--muted);
+  border-radius: 4px;
+  pointer-events: none;
 }
-.milkdown .ProseMirror li[data-item-type='task'][data-checked='true'] {
+.milkdown .ProseMirror li[data-item-type='task'][data-checked='true']::after {
+  background: var(--accent);
+  border-color: var(--accent);
+  /* チェックマーク */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3.5 8.5l3 3 6-7' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-size: 100% 100%;
+}
+.milkdown .ProseMirror li[data-item-type='task'][data-checked='true'] > p {
   color: var(--muted);
   text-decoration: line-through;
 }

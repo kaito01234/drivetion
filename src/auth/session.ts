@@ -129,6 +129,11 @@ class AuthManager {
     this.set({ status: 'signedOut', busy: false, error: null })
   }
 
+  /** いま有効なトークンを持っているか(バックグラウンドの確認処理で、再ログインを促さないために使う) */
+  hasValidToken(): boolean {
+    return this.snap.status === 'signedIn' && isTokenValid(this.token)
+  }
+
   /** 有効なアクセストークンを返す。失効していれば再ログインされるまで待つ */
   getAccessToken(): Promise<string> {
     if (isTokenValid(this.token)) return Promise.resolve(this.token.accessToken)
